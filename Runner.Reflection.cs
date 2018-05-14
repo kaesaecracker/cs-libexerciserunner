@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices.ComTypes;
 
-namespace LibConsoleRunner
+namespace LibExerciseRunner
 {
     using System;
     using System.Collections.Generic;

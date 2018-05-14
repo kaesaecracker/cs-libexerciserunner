@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using Library;
 
-namespace LibConsoleRunner
+namespace LibExerciseRunner
 {
     using Serilog;
     using Serilog.Core;
