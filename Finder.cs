@@ -1,17 +1,63 @@
-﻿using System.Runtime.InteropServices.ComTypes;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
+using LibConsole;
+using Serilog;
+using static LibConsole.PrettyPrint;
+using static LibConsole.PrettyRead;
 
 namespace LibExerciseRunner
 {
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
-    using System.Reflection;
-    using Library;
-
-    public partial class Program
+    public class Finder
     {
-        private static List<ExerciseWithInfo> GetExercises()
+        public List<ExerciseWithInfo> Exercises { get; } = LoadExercises();
+
+        public Finder()
+        {
+            Log.Debug("Exercises: {@exercises}", this.Exercises);
+        }
+
+        public ExerciseWithInfo? FindExerciseByNumber(string input)
+        {
+            var matches = this.Exercises.Where(e => e.Number == input).ToList();
+            if (matches.Any())
+            {
+                return matches.First();
+            }
+
+            return null;
+        }
+
+        public static List<TaskWithInfo> FindTasksInExercise(ExerciseWithInfo exercise)
+        {
+            var methods = (
+                from m in exercise.Exercise.GetMethods()
+                select m
+            ).ToList();
+            Log.Debug("Availiable methods: {@m}", methods);
+
+            var tasks = (
+                from m in methods
+                where m.IsDefined(typeof(TaskAttribute), false)
+                select m
+            ).ToList();
+            Log.Debug("Availiable tasks: {@t}", tasks);
+
+            return (
+                from m in tasks
+                let twi = new TaskWithInfo(
+                    m,
+                    m.GetCustomAttribute(typeof(TaskAttribute)) as TaskAttribute
+                )
+                orderby twi.Number
+                select twi
+            ).ToList();
+        }
+        
+        private static List<ExerciseWithInfo> LoadExercises()
         {
             string executingDll = Assembly.GetExecutingAssembly().Location;
             string ownPath = Path.GetDirectoryName(executingDll);
@@ -62,34 +108,15 @@ namespace LibExerciseRunner
             ).ToList();
         }
 
-        private static List<TaskWithInfo> GetTasks(ExerciseWithInfo exercise)
-            => GetTasks(new List<ExerciseWithInfo> {exercise});
-
-        private static List<TaskWithInfo> GetTasks(List<ExerciseWithInfo> exercises)
+        public TaskWithInfo? FindTaskByNumber(List<TaskWithInfo> tasks, string input)
         {
-            var methods = (
-                from e in exercises
-                from m in e.Exercise.GetMethods()
-                select m
-            ).ToList();
-            Log.Debug("Availiable methods: {@m}", methods);
+            var matches = tasks.Where(t => t.Number == input).ToList();
+            if (matches.Any())
+            {
+                return matches.First();
+            }
 
-            var tasks = (
-                from m in methods
-                where m.IsDefined(typeof(TaskAttribute), false)
-                select m
-            ).ToList();
-            Log.Debug("Availiable tasks: {@t}", tasks);
-
-            return (
-                from m in tasks
-                let twi = new TaskWithInfo(
-                    m,
-                    m.GetCustomAttribute(typeof(TaskAttribute)) as TaskAttribute
-                )
-                orderby twi.Number
-                select twi
-            ).ToList();
+            return null;
         }
     }
 }
