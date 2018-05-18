@@ -15,11 +15,6 @@ namespace LibExerciseRunner
     {
         public List<ExerciseWithInfo> Exercises { get; } = LoadExercises();
 
-        public Finder()
-        {
-            Log.Debug("Exercises: {@exercises}", this.Exercises);
-        }
-
         public ExerciseWithInfo? FindExerciseByNumber(string input)
         {
             var matches = this.Exercises.Where(e => e.Number == input).ToList();
@@ -31,23 +26,11 @@ namespace LibExerciseRunner
             return null;
         }
 
-        public static List<TaskWithInfo> FindTasksInExercise(ExerciseWithInfo exercise)
+        public static List<TaskWithInfo> GetTasksInExercise(ExerciseWithInfo exercise)
         {
-            var methods = (
-                from m in exercise.Exercise.GetMethods()
-                select m
-            ).ToList();
-            Log.Debug("Availiable methods: {@m}", methods);
-
-            var tasks = (
-                from m in methods
-                where m.IsDefined(typeof(TaskAttribute), false)
-                select m
-            ).ToList();
-            Log.Debug("Availiable tasks: {@t}", tasks);
-
             return (
-                from m in tasks
+                from m in exercise.Exercise.GetMethods()
+                where m.IsDefined(typeof(TaskAttribute), false)
                 let twi = new TaskWithInfo(
                     m,
                     m.GetCustomAttribute(typeof(TaskAttribute)) as TaskAttribute
@@ -56,7 +39,18 @@ namespace LibExerciseRunner
                 select twi
             ).ToList();
         }
-        
+
+        public TaskWithInfo? FindTaskByNumber(List<TaskWithInfo> tasks, string input)
+        {
+            var matches = tasks.Where(t => t.Number == input).ToList();
+            if (matches.Any())
+            {
+                return matches.First();
+            }
+
+            return null;
+        }
+
         private static List<ExerciseWithInfo> LoadExercises()
         {
             string executingDll = Assembly.GetExecutingAssembly().Location;
@@ -101,22 +95,14 @@ namespace LibExerciseRunner
                 from a in loadedAssemblys
                 from t in a.GetTypes()
                 where t.IsClass
-                where t.IsDefined(typeof(ExerciseAttribute), true)
-                select new ExerciseWithInfo(
+                      && t.IsDefined(typeof(ExerciseAttribute), true)
+                let ewi = new ExerciseWithInfo(
                     t,
-                    t.GetCustomAttribute(typeof(ExerciseAttribute)) as ExerciseAttribute)
+                    t.GetCustomAttribute(typeof(ExerciseAttribute)) as ExerciseAttribute
+                )
+                orderby ewi.Number
+                select ewi
             ).ToList();
-        }
-
-        public TaskWithInfo? FindTaskByNumber(List<TaskWithInfo> tasks, string input)
-        {
-            var matches = tasks.Where(t => t.Number == input).ToList();
-            if (matches.Any())
-            {
-                return matches.First();
-            }
-
-            return null;
         }
     }
 }
